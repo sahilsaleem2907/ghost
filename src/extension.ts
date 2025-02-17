@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
-import * as treeify from 'treeify';
+import * as treeify from 'treeify'; // Import treeify for generating tree structures
+import axios from 'axios'; // Import axios for making HTTP requests
 
 interface TreeNode {
 	[key: string]: any;
@@ -28,13 +29,14 @@ class FolderStructurePanel {
 		this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
 	}
 
-	public static createOrShow(extensionContext: vscode.ExtensionContext, structure: TreeNode) {
+	public static createOrShow(extensionContext: vscode.ExtensionContext, structure: any) {
 		const column = vscode.window.activeTextEditor
 			? vscode.window.activeTextEditor.viewColumn
 			: undefined;
 
 		if (FolderStructurePanel.currentPanel) {
 			FolderStructurePanel.currentPanel._panel.reveal(column);
+			FolderStructurePanel.currentPanel._update(structure);
 			return;
 		}
 
@@ -49,11 +51,49 @@ class FolderStructurePanel {
 		FolderStructurePanel.currentPanel._update(structure);
 	}
 
-	private _update(structure: TreeNode) {
+	private _update(structure: any) {
 		this._panel.webview.html = this._getHtmlContent(structure);
 	}
 
-	private _getHtmlContent(structure: TreeNode): string {
+	private _getHtmlContent(structure: any): string {
+		if (structure.loading) {
+			return `
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <style>
+                        body { 
+                            background: #252526; 
+                            color: #fff;
+                            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+                        }
+                        .loader {
+                            display: flex;
+                            justify-content: center;
+                            align-items: center;
+                            height: 100vh;
+                        }
+                        .loader::after {
+                            content: "";
+                            width: 40px;
+                            height: 40px;
+                            border: 5px solid #fff;
+                            border-top-color: transparent;
+                            border-radius: 50%;
+                            animation: spin 1s linear infinite;
+                        }
+                        @keyframes spin {
+                            to { transform: rotate(360deg); }
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class="loader"></div>
+                </body>
+                </html>
+            `;
+		}
+
 		return `
             <!DOCTYPE html>
             <html>
@@ -78,7 +118,7 @@ class FolderStructurePanel {
         `;
 	}
 
-	private _generateSvg(structure: TreeNode): string {
+	private _generateSvg(structure: any): string {
 		const nodes = this._processStructure(structure);
 		const svgHeight = nodes.length * 30 + 50;
 
@@ -135,7 +175,7 @@ class FolderStructurePanel {
         `;
 	}
 
-	private _processStructure(structure: TreeNode, prefix: string = '', result: string[] = [], level: number = 0): string[] {
+	private _processStructure(structure: any, prefix: string = '', result: string[] = [], level: number = 0): string[] {
 		Object.entries(structure).forEach(([key, value]) => {
 			const path = prefix ? `${prefix}/${key}` : key;
 
@@ -246,13 +286,32 @@ class FolderStructurePanel {
 async function displayFolderStructure(folderUri: vscode.Uri, context: vscode.ExtensionContext) {
 	try {
 		const structure = await getFolderStructure(folderUri);
-		FolderStructurePanel.createOrShow(context, structure);
+
+		// Convert structure to treeified format
+		const treeifiedStructure = treeify.asTree(structure, true, true);
+
+		// Show the loader in the webview
+		FolderStructurePanel.createOrShow(context, { loading: true });
+
+		// Send the treeified structure to the Ollama DeepSeek model
+		console.log("Starting Ollama Request with treeified structure...");
+		const response = await sendToOllamaDeepSeek(treeifiedStructure);
+
+		// Extract JSON from within <json> tags and parse it
+		const jsonMatch = response.match(/<json>(.*?)<\/json>/s);
+		if (!jsonMatch) {
+			throw new Error('No JSON found in response');
+		}
+
+		const extractedJson = JSON.parse(jsonMatch[1].trim());
+
+		// Update the webview with the extracted JSON
+		FolderStructurePanel.createOrShow(context, extractedJson);
 	} catch (error) {
 		console.error('Error reading folder structure:', error);
 		vscode.window.showErrorMessage('Failed to read folder structure. Check the console for details.');
 	}
 }
-
 async function getFolderStructure(folderUri: vscode.Uri): Promise<any> {
 	const files = await vscode.workspace.fs.readDirectory(folderUri);
 	const structure: { [key: string]: any } = {};
@@ -272,4 +331,56 @@ async function getFolderStructure(folderUri: vscode.Uri): Promise<any> {
 	}
 
 	return structure;
+}
+
+async function sendToOllamaDeepSeek(structure: string): Promise<string> {
+	try {
+		console.log("Treeified structure input:\n", structure);
+		const response = await axios.post(
+			'http://localhost:11434/api/generate',
+			{
+				model: 'deepseek-r1',
+				prompt: structure,
+				system: `Analyze the provided folder structure (in tree format) and return an improved version that follows best practices for project organization. Your response must:
+                        1. Maintain the exact same tree format as the input
+                        2. Only contain the reorganized structure
+                        3. Be wrapped in <json> tags
+                        4. Include no explanations or additional text
+                        
+                        Example format:
+                        <json>
+                        ├── src/
+                        │   ├── components/
+                        │   └── utils/
+                        └── tests/
+                        </json>
+						
+						Return only this json output of the better organized folder structure.
+						`,
+				stream: true,
+			},
+			{
+				responseType: 'stream'
+			}
+		);
+
+		let finalResponse = '';
+
+		// Handle streamed data
+		for await (const chunk of response.data) {
+			const chunkString = chunk.toString('utf-8');
+			const parsedChunk = JSON.parse(chunkString);
+			finalResponse += parsedChunk.response || '';
+
+			if (parsedChunk.done) {
+				break;
+			}
+		}
+
+		console.log("Final response:", finalResponse);
+		return finalResponse;
+	} catch (error) {
+		console.error('Error sending data to Ollama:', error);
+		throw error;
+	}
 }
