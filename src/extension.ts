@@ -23,10 +23,18 @@ class FolderStructurePanel {
 	public static currentPanel: FolderStructurePanel | undefined;
 	private readonly _panel: vscode.WebviewPanel;
 	private _disposables: vscode.Disposable[] = [];
+	private readonly _extensionUri: vscode.Uri;
 
-	private constructor(panel: vscode.WebviewPanel) {
+	private constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri) {
 		this._panel = panel;
+		this._extensionUri = extensionUri;
 		this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
+
+		// Set the tab icon
+		this._panel.iconPath = {
+			light: vscode.Uri.joinPath(this._extensionUri, 'src', 'logos', 'ghost.svg'),
+			dark: vscode.Uri.joinPath(this._extensionUri, 'src', 'logos', 'ghost.svg')
+		};
 	}
 
 	public static createOrShow(extensionContext: vscode.ExtensionContext, structure: any) {
@@ -44,10 +52,15 @@ class FolderStructurePanel {
 			'folderStructure',
 			`Ghost's View`,
 			column || vscode.ViewColumn.One,
-			{ enableScripts: true }
+			{
+				enableScripts: true,
+				localResourceRoots: [
+					vscode.Uri.joinPath(extensionContext.extensionUri, 'src', 'logos')
+				]
+			}
 		);
 
-		FolderStructurePanel.currentPanel = new FolderStructurePanel(panel);
+		FolderStructurePanel.currentPanel = new FolderStructurePanel(panel, extensionContext.extensionUri);
 		FolderStructurePanel.currentPanel._update(structure);
 	}
 
@@ -66,56 +79,217 @@ class FolderStructurePanel {
                             background: #252526; 
                             color: #fff;
                             font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+                            margin: 0;
+                            padding: 20px;
+                            display: flex;
+                            flex-direction: column;
+                            align-items: center;
+                            justify-content: center;
+                            min-height: 100vh;
+                        }
+                        .loader-container {
+                            text-align: center;
                         }
                         .loader {
-                            display: flex;
-                            justify-content: center;
-                            align-items: center;
-                            height: 100vh;
-                        }
-                        .loader::after {
-                            content: "";
-                            width: 40px;
-                            height: 40px;
-                            border: 5px solid #fff;
-                            border-top-color: transparent;
+                            display: inline-block;
+                            width: 50px;
+                            height: 50px;
+                            border: 3px solid rgba(255,255,255,.3);
                             border-radius: 50%;
-                            animation: spin 1s linear infinite;
+                            border-top-color: #fff;
+                            animation: spin 1s ease-in-out infinite;
+                            margin-bottom: 20px;
                         }
                         @keyframes spin {
                             to { transform: rotate(360deg); }
                         }
+                        .loader-text {
+                            font-size: 16px;
+                            color: #fff;
+                            margin-top: 15px;
+                        }
                     </style>
                 </head>
                 <body>
-                    <div class="loader"></div>
+                    <div class="loader-container">
+                        <div class="loader"></div>
+                        <div class="loader-text">
+                            ${structure.message || 'Analyzing folder structure...'}
+                        </div>
+                    </div>
                 </body>
                 </html>
             `;
 		}
 
+		// Convert structure to treeified format
+		const treeifiedStructure = treeify.asTree(structure, true, true);
+
 		return `
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <style>
-                    body { 
-                        background: #252526; 
-                        color: #fff;
-                        font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-                    }
-                    .tree-container {
-                        padding: 20px;
-                    }
-                </style>
-            </head>
-            <body>
-                <div class="tree-container">
-                    ${this._generateSvg(structure)}
-                </div>
-            </body>
-            </html>
-        `;
+			<!DOCTYPE html>
+			<html>
+			<head>
+				<style>
+					body { 
+						background: #252526; 
+						color: #fff;
+						font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+						margin: 0;
+						padding: 0;
+					}
+					.container {
+						display: flex;
+						padding: 20px;
+						gap: 20px;
+					}
+					.tree-section {
+						flex: 1;
+						position: relative;
+					}
+					.tree-container {
+						position: relative;
+					}
+					.raw-structure {
+						display: none;
+					}
+					.buttons-container {
+						width: 200px;
+						display: flex;
+						flex-direction: column;
+						gap: 10px;
+					}
+					.button {
+						background: #0e639c;
+						border: none;
+						color: white;
+						padding: 8px 16px;
+						border-radius: 4px;
+						cursor: pointer;
+						font-size: 14px;
+						transition: background-color 0.2s;
+						display: flex;
+						align-items: center;
+						gap: 8px;
+					}
+					.button:hover {
+						background: #1177bb;
+					}
+					.button:active {
+						background: #0d5285;
+					}
+					.copy-button {
+						position: absolute;
+						top: 0px;
+						right: 10px;
+						background: rgba(14, 99, 156, 0.8);
+						border: none;
+						color: white;
+						padding: 6px 12px;
+						border-radius: 4px;
+						cursor: pointer;
+						display: flex;
+						align-items: center;
+						gap: 6px;
+						font-size: 12px;
+						transition: all 0.2s;
+					}
+					.copy-button:hover {
+						background: rgba(17, 119, 187, 0.9);
+					}
+					.tooltip {
+						position: absolute;
+						background: #333;
+						padding: 4px 8px;
+						border-radius: 4px;
+						font-size: 12px;
+						top: 30px;
+						left: 50%;
+						transform: translateX(-50%);
+						opacity: 0;
+						transition: opacity 0.2s;
+						pointer-events: none;
+					}
+					.copy-button.copied .tooltip {
+						opacity: 1;
+					}
+				</style>
+				<script>
+					function downloadSVG() {
+					const svg = document.querySelector('svg');
+					if (!svg) {
+						console.error('No SVG element found');
+						return;
+					}
+
+					// Serialize the SVG element to a string
+					const serializer = new XMLSerializer();
+					const svgString = serializer.serializeToString(svg);
+
+					// Create a Blob with the SVG content
+					const blob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+
+					// Create a URL for the Blob
+					const url = URL.createObjectURL(blob);
+
+					// Create a temporary anchor element to trigger the download
+					const a = document.createElement('a');
+					a.href = url;
+					a.download = 'folder-structure.svg'; // Set the filename for the download
+					document.body.appendChild(a);
+
+					// Trigger the download
+					a.click();
+
+					// Clean up
+					document.body.removeChild(a);
+					URL.revokeObjectURL(url);
+				   }
+	
+					function copyToClipboard() {
+						const treeStructure = document.querySelector('.raw-structure').textContent;
+						navigator.clipboard.writeText(treeStructure).then(() => {
+							const copyButton = document.querySelector('.copy-button');
+							copyButton.classList.add('copied');
+							setTimeout(() => {
+								copyButton.classList.remove('copied');
+							}, 2000);
+						}).catch(err => {
+							console.error('Failed to copy:', err);
+						});
+					}
+				</script>
+			</head>
+			<body>
+				<div class="container">
+					<div class="tree-section">
+						<div class="tree-container">
+							${this._generateSvg(structure)}
+						</div>
+						<pre class="raw-structure">${treeifiedStructure}</pre>
+						<button class="copy-button" onclick="copyToClipboard()">
+							<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+								<rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+								<path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+							</svg>
+							Copy
+							<span class="tooltip">Copied!</span>
+						</button>
+					</div>
+					<div class="buttons-container">
+						<button class="button">Apply Changes</button>
+						<button class="button" onclick="downloadSVG()">
+							<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+								<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+								<polyline points="7 10 12 15 17 10"></polyline>
+								<line x1="12" y1="15" x2="12" y2="3"></line>
+							</svg>
+							Download as SVG
+						</button>
+					</div>
+				</div>
+			</body>
+			</html>
+		`;
 	}
 
 	private _generateSvg(structure: any): string {
@@ -283,48 +457,121 @@ class FolderStructurePanel {
 	}
 }
 
+
 async function displayFolderStructure(folderUri: vscode.Uri, context: vscode.ExtensionContext) {
 	try {
+		// Show initial loading state
+		FolderStructurePanel.createOrShow(context, {
+			loading: true,
+			message: 'Reading folder structure...'
+		});
+
 		const structure = await getFolderStructure(folderUri);
 
-		// Convert structure to treeified format
-		const treeifiedStructure = treeify.asTree(structure, true, true);
+		// Show intermediate loading state while waiting for Ollama
+		FolderStructurePanel.createOrShow(context, {
+			loading: true,
+			message: 'Ghost is analyzing the structure...'
+		});
 
-		// Show the loader in the webview
-		FolderStructurePanel.createOrShow(context, { loading: true });
+		try {
+			const treeifiedStructure = treeify.asTree(structure, true, true);
+			const response = await sendToOllama(treeifiedStructure);
 
-		// Send the treeified structure to the Ollama DeepSeek model
-		console.log("Starting Ollama Request with treeified structure...");
-		const response = await sendToOllamaDeepSeek(treeifiedStructure);
+			if (response && typeof response === 'string') {
+				const treeMatch = response.match(/<tree>([\s\S]*?)<\/tree>/);
 
-		// Extract JSON from within <json> tags and parse it
-		const jsonMatch = response.match(/<json>(.*?)<\/json>/s);
-		if (!jsonMatch) {
-			throw new Error('No JSON found in response');
+				if (treeMatch && treeMatch[1]) {
+					const parsedStructure = parseTreeToObject(treeMatch[1].trim());
+					console.log("Ollama request recieved! \n", parsedStructure);
+					FolderStructurePanel.createOrShow(context, parsedStructure);
+				} else {
+					// If we can't parse the Ollama response, show the original structure
+					FolderStructurePanel.createOrShow(context, structure);
+				}
+			}
+		} catch (ollamaError) {
+			console.error('Error with Ollama request:', ollamaError);
+			// Show original structure if Ollama fails
+			FolderStructurePanel.createOrShow(context, structure);
 		}
-
-		const extractedJson = JSON.parse(jsonMatch[1].trim());
-
-		// Update the webview with the extracted JSON
-		FolderStructurePanel.createOrShow(context, extractedJson);
 	} catch (error) {
 		console.error('Error reading folder structure:', error);
+		FolderStructurePanel.createOrShow(context, {
+			loading: true,
+			message: 'Error: Failed to read folder structure'
+		});
 		vscode.window.showErrorMessage('Failed to read folder structure. Check the console for details.');
 	}
 }
-async function getFolderStructure(folderUri: vscode.Uri): Promise<any> {
+
+// Helper function to parse tree string back to object
+function parseTreeToObject(treeStr: string): any {
+	const lines = treeStr.split('\n');
+	const root: any = {};
+	let currentPath: string[] = [];
+	let prevLevel = 0;
+
+	lines.forEach(line => {
+		if (!line.trim()) { return; }
+
+		// Count the level based on indent markers
+		const level = (line.match(/│/g) || []).length;
+		const name = line.replace(/[│├└─\s]/g, '').replace(/\/$/, '');
+
+		// Adjust the current path based on level
+		if (level === prevLevel) {
+			currentPath.pop();
+		} else if (level < prevLevel) {
+			currentPath = currentPath.slice(0, level);
+		}
+
+		// Add the current item
+		if (name) {
+			currentPath.push(name);
+			let current = root;
+
+			// Build the nested structure
+			for (let i = 0; i < currentPath.length; i++) {
+				const pathPart = currentPath[i];
+				if (i === currentPath.length - 1) {
+					current[pathPart] = line.endsWith('/') ? {} : null;
+				} else {
+					if (!current[pathPart]) {
+						current[pathPart] = {};
+					}
+					current = current[pathPart];
+				}
+			}
+		}
+
+		prevLevel = level;
+	});
+
+	return root;
+}
+
+// Modified getFolderStructure to handle circular references
+async function getFolderStructure(folderUri: vscode.Uri, visited = new Set<string>()): Promise<any> {
+	const uriString = folderUri.toString();
+
+	// Prevent circular references
+	if (visited.has(uriString)) {
+		return {};
+	}
+	visited.add(uriString);
+
 	const files = await vscode.workspace.fs.readDirectory(folderUri);
 	const structure: { [key: string]: any } = {};
 
 	for (const [name, type] of files) {
-		// Skip expanding node_modules, just mark it as an empty folder
-		if (name === 'node_modules' && type === vscode.FileType.Directory) {
-			structure[name] = {};
+		// Skip system files and hidden folders
+		if (name.startsWith('.') || name === 'node_modules') {
 			continue;
 		}
 
 		if (type === vscode.FileType.Directory) {
-			structure[name] = await getFolderStructure(vscode.Uri.joinPath(folderUri, name));
+			structure[name] = await getFolderStructure(vscode.Uri.joinPath(folderUri, name), visited);
 		} else {
 			structure[name] = null;
 		}
@@ -333,54 +580,32 @@ async function getFolderStructure(folderUri: vscode.Uri): Promise<any> {
 	return structure;
 }
 
-async function sendToOllamaDeepSeek(structure: string): Promise<string> {
+// Updated sendToOllama function with better error handling
+async function sendToOllama(structure: string): Promise<string> {
 	try {
-		console.log("Treeified structure input:\n", structure);
-		const response = await axios.post(
-			'http://localhost:11434/api/generate',
-			{
-				model: 'deepseek-r1',
-				prompt: structure,
-				system: `Analyze the provided folder structure (in tree format) and return an improved version that follows best practices for project organization. Your response must:
-                        1. Maintain the exact same tree format as the input
-                        2. Only contain the reorganized structure
-                        3. Be wrapped in <json> tags
-                        4. Include no explanations or additional text
-                        
-                        Example format:
-                        <json>
-                        ├── src/
-                        │   ├── components/
-                        │   └── utils/
-                        └── tests/
-                        </json>
-						
-						Return only this json output of the better organized folder structure.
-						`,
-				stream: true,
-			},
-			{
-				responseType: 'stream'
-			}
-		);
+		console.log('Request sent to ollama!');
+		const response = await axios.post('http://localhost:11434/api/chat', {
+			model: 'phi4',
+			messages: [
+				{
+					role: "user",
+					content: structure
+				},
+				{
+					role: "system",
+					content: `Analyze the provided react application folder structure (in tree format) and return an improved version that follows best practices for project organization. Your response must:
+                    1. Only contain the reorganized structure
+                    2. Be wrapped in <tree> tags
+                    3. Include no explanations or additional text or comments in or outside the <tree> tags`
+				}
+			],
+			stream: false
+		});
 
-		let finalResponse = '';
-
-		// Handle streamed data
-		for await (const chunk of response.data) {
-			const chunkString = chunk.toString('utf-8');
-			const parsedChunk = JSON.parse(chunkString);
-			finalResponse += parsedChunk.response || '';
-
-			if (parsedChunk.done) {
-				break;
-			}
-		}
-
-		console.log("Final response:", finalResponse);
-		return finalResponse;
+		return response.data.message.content;
 	} catch (error) {
 		console.error('Error sending data to Ollama:', error);
 		throw error;
 	}
+
 }
