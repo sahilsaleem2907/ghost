@@ -585,14 +585,14 @@ async function sendToOllama(structure: string): Promise<string> {
 	try {
 		console.log('Request sent to ollama!');
 		const response = await axios.post('http://localhost:11434/api/chat', {
-			model: 'phi4',
+			model: 'llama3.1',
 			messages: [
 				{
 					role: "user",
 					content: structure
 				},
 				{
-					role: "system",
+					role: "assistant",
 					content: `Analyze the provided react application folder structure (in tree format) and return an improved version that follows best practices for project organization. Your response must:
                     1. Only contain the reorganized structure
                     2. Be wrapped in <tree> tags
