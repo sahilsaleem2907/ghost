@@ -1,5 +1,8 @@
 <p align="center">
-  <h1 align="center">👻 Ghost - VS Code Extension</h1>
+  <h1 align="center">
+    <img src="src/logos/ghost.svg" alt="Ghost Logo" width="40" height="40" />
+    Ghost - VS Code Extension
+  </h1>
 </p>
 
 <p align="center">
@@ -71,4 +74,4 @@ If you'd like to contribute to Ghost or customize it for your needs, follow thes
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/your-repo/ghost-vscode-extension.git
+   https://github.com/sahilsaleem2907/ghost.git
