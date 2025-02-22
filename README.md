@@ -1,6 +1,6 @@
 <p align="center">
   <h1 align="center">
-    <img src="src/logos/ghost.svg" alt="Ghost Logo" width="40" height="40" style="vertical-align: middle;" />
+    <img src="src/logos/ghost.svg" alt="Ghost Logo" width="80" height="80" style="vertical-align: middle;" />
     Ghost - VS Code Extension
   </h1>
 </p>
