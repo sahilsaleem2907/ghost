@@ -1,8 +1,8 @@
 <p align="center">
-  <h1 align="center" style="display: flex; align-items: center; justify-content: center;">
-    <img src="src/logos/ghost.svg" alt="Ghost Logo" width="30" height="25" style="vertical-align: middle;" />
-    Ghost - VS Code Extension
-  </h1>
+  <div align="center" style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
+    <img src="src/logos/ghost.svg" alt="Ghost Logo" width="300" height="300" style="vertical-align: middle;" />
+    <h1 align="center">Ghost - VS Code Extension</h1>
+  </div>
 </p>
 
 <p align="center">
@@ -18,7 +18,7 @@
 
 ---
 
-## 🚀 Features
+## Features
 
 - **📂 Folder Structure Analysis**: Scans your folder structure and identifies inefficiencies.
 - **🤖 AI-Powered Suggestions**: Provides tailored recommendations using the Ollama model.
@@ -28,7 +28,7 @@
 
 ---
 
-## 📦 Installation
+## Installation
 
 1. Open **Visual Studio Code**.
 2. Go to the **Extensions** view by clicking on the Extensions icon in the Activity Bar or pressing `Ctrl+Shift+X`.
@@ -37,7 +37,7 @@
 
 ---
 
-## 🛠️ Usage
+## Usage
 
 1. Open your project in VS Code.
 2. Open the Command Palette (`Ctrl+Shift+P` or `Cmd+Shift+P` on macOS) and type **"Ghost: Analyze Folder Structure"**.
@@ -47,7 +47,7 @@
 
 ---
 
-## ⚙️ Configuration
+## Configuration
 
 Ghost can be customized via the VS Code settings. To configure the extension:
 
@@ -60,7 +60,7 @@ Ghost can be customized via the VS Code settings. To configure the extension:
 
 ---
 
-## 📋 Requirements
+## Requirements
 
 - **Visual Studio Code**: Version 1.60.0 or higher.
 - **Node.js**: Version 16.x or higher.
@@ -68,7 +68,7 @@ Ghost can be customized via the VS Code settings. To configure the extension:
 
 ---
 
-## 🛠️ Development
+## Development
 
 If you'd like to contribute to Ghost or customize it for your needs, follow these steps:
 
