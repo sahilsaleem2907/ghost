@@ -584,25 +584,26 @@ async function getFolderStructure(folderUri: vscode.Uri, visited = new Set<strin
 async function sendToOllama(structure: string): Promise<string> {
 	try {
 		console.log('Request sent to ollama!');
-		const response = await axios.post('http://localhost:11434/api/chat', {
+		const response = await axios.post('http://localhost:11434/api/generate', {
 			model: 'llama3.1',
-			messages: [
-				{
-					role: "user",
-					content: structure
-				},
-				{
-					role: "assistant",
-					content: `Analyze the provided react application folder structure (in tree format) and return an improved version that follows best practices for project organization. Your response must:
+			prompt: `
+					${structure}
+					Analyze the provided react application folder structure above which is in a tree and return an improved version that follows best practices for project organization. Your response must:
                     1. Only contain the reorganized structure
                     2. Be wrapped in <tree> tags
-                    3. Include no explanations or additional text or comments in or outside the <tree> tags`
-				}
-			],
+                    3. Include no explanations or additional text or comments in or outside the <tree> tags
+					Example output format: 
+					<tree> 
+					├── src/ │   
+					├── components/ │   
+							        └── utils/ 
+							        └── tests/ 
+					</tree> 
+					`,
 			stream: false
 		});
 
-		return response.data.message.content;
+		return response.data.response;
 	} catch (error) {
 		console.error('Error sending data to Ollama:', error);
 		throw error;
