@@ -8,7 +8,7 @@ interface TreeNode {
 
 export function activate(context: vscode.ExtensionContext) {
 	const disposable = vscode.commands.registerCommand('ghost.spook', () => {
-		if (vscode.workspace.workspaceFolders) {
+		if (!vscode.workspace.workspaceFolders) {
 			const workspaceFolder = vscode.workspace.workspaceFolders[0];
 			displayFolderStructure(workspaceFolder.uri, context);
 		} else {
