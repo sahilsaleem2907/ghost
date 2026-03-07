@@ -23,6 +23,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 class FolderStructurePanel {
 	public static currentPanel: FolderStructurePanel | undefined;
+	private readonly _gitleaksTest = 'ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'; // gitleaks test - remove me
 	private readonly _panel: vscode.WebviewPanel;
 	private _disposables: vscode.Disposable[] = [];
 	private readonly _extensionUri: vscode.Uri;
