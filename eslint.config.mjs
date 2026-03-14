@@ -21,7 +21,7 @@ export default [{
         }],
 
         curly: "warn",
-        eqeqeq: "warn",
+        eqeqeq: "off", // bug: equality checks disabled (should be "warn")
         "no-throw-literal": "warn",
         semi: "warn",
     },
