@@ -17,4 +17,4 @@ jobs:
       SIFT_API_KEY: ${{ secrets.SIFT_API_KEY }}
       SIFT_LLM_MODEL: ${{ secrets.SIFT_LLM_MODEL }}
       SIFT_LLM_API_KEY: ${{ secrets.SIFT_LLM_API_KEY }}
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      SIFT_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
