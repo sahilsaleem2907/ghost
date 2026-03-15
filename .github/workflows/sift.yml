@@ -6,7 +6,7 @@ on:
 
 jobs:
   sift:
-    uses: sahilsaleem2907/sift/.github/workflows/sift-review.yml@custom/vector-search
+    uses: sahilsaleem2907/sift/.github/workflows/sift-review.yml@dev
     with:
       repository: ${{ github.repository }}
       pr_number: ${{ github.event.pull_request.number }}
