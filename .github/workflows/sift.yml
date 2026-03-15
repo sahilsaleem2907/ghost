@@ -1,0 +1,20 @@
+name: Sift PR Review
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+
+jobs:
+  sift:
+    uses: sahilsaleem2907/sift/.github/workflows/sift-review.yml@custom/vector-search
+    with:
+      repository: ${{ github.repository }}
+      pr_number: ${{ github.event.pull_request.number }}
+      before_sha: ${{ github.event.before }}
+    secrets:
+      SIFT_IMAGE: ${{ secrets.SIFT_IMAGE }}
+      SIFT_DATABASE_URL: ${{ secrets.SIFT_DATABASE_URL }}
+      SIFT_API_KEY: ${{ secrets.SIFT_API_KEY }}
+      SIFT_LLM_MODEL: ${{ secrets.SIFT_LLM_MODEL }}
+      SIFT_LLM_API_KEY: ${{ secrets.SIFT_LLM_API_KEY }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
