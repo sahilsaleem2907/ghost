@@ -6,6 +6,9 @@ on:
 
 jobs:
   sift:
+    permissions:
+      contents: read
+      pull-requests: write
     uses: sahilsaleem2907/sift/.github/workflows/sift-review.yml@dev
     with:
       repository: ${{ github.repository }}
