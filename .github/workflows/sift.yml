@@ -22,3 +22,4 @@ jobs:
       SIFT_LLM_MODEL: ${{ secrets.SIFT_LLM_MODEL }}
       SIFT_LLM_API_KEY: ${{ secrets.SIFT_LLM_API_KEY }}
       SIFT_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      SIFT_INSTALLATION_ID: ${{ secrets.SIFT_INSTALLATION_ID }}
