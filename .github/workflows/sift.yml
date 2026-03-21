@@ -14,7 +14,7 @@ jobs:
       repository: ${{ github.repository }}
       pr_number: ${{ github.event.pull_request.number }}
       before_sha: ${{ github.event.before }}
-      auth_mode: app_token
+      auth_mode: installation_id
     secrets:
       SIFT_IMAGE: ${{ secrets.SIFT_IMAGE }}
       SIFT_DATABASE_URL: ${{ secrets.SIFT_DATABASE_URL }}
