@@ -15,5 +15,4 @@ jobs:
       pr_number: ${{ github.event.pull_request.number }}
       before_sha: ${{ github.event.before }}
       auth_mode: installation_id
-    secrets:
-      secrets: inherit
+    secrets: inherit
