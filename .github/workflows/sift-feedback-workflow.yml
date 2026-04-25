@@ -5,10 +5,9 @@ on:
 
 jobs:
   feedback:
-    uses: sahilsaleem2907/sift/.github/workflows/sift-feedback.yml@custom/github-actions
+    uses: sahilsaleem2907/sift/.github/workflows/sift-feedback.yml@master
     with:
       repository: ${{ github.repository }}
       pr_number: ${{ github.event.pull_request.number }}
       merged: ${{ github.event.pull_request.merged }}
-      auth_mode: installation_id
     secrets: inherit
