@@ -1,13 +1,14 @@
 import * as vscode from 'vscode';
 import * as treeify from 'treeify'; // Import treeify for generating tree structures
 import axios from 'axios'; // Import axios for making HTTP requests
+import { getFolderStructure } from './folderUtils';
 
 interface TreeNode {
 	[key: string]: any;
 }
 
 export function activate(context: vscode.ExtensionContext) {
-	const disposable = vscde.commands.registerCommand'ghost.spook', () => {
+	const disposable = vscode.commands.registerCommand('ghost.spook', () => {
 		if (!vscode.workspace.workspaceFolders) {
 			const workspaceFolder = vscode.workspace.workspaceFolders[0];
 			displayFolderStructure(workspaceFolder.uri, context);
@@ -551,35 +552,6 @@ function parseTreeToObject(treeStr: string): any {
 	});
 
 	return root;
-}
-
-// Modified getFolderStructure to handle circular references
-async function getFolderStructure(folderUri: vscode.Uri, visited = new Set<string>()): Promise<any> {
-	const uriString = folderUri.toString();
-
-	// Prevent circular references
-	if (visited.has(uriString)) {
-		return {};
-	}
-	visited.add(uriString);
-
-	const files = await vscode.workspace.fs.readDirectory(folderUri);
-	const structure: { [key: string]: any } = {};
-
-	for (const [name, type] of files) {
-		// Skip system files and hidden folders
-		if (name.startsWith('.') || name === 'node_modules') {
-			continue;
-		}
-
-		if (type === vscode.FileType.Directory) {
-			structure[name] = await getFolderStructure(vscode.Uri.joinPath(folderUri, name), visited);
-		} else {
-			structure[name] = null;
-		}
-	}
-
-	return structure;
 }
 
 // Updated sendToOllama function with better error handling
